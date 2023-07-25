@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:google_cloud_translation/src/models/translation_model.dart';
@@ -58,11 +57,9 @@ class Translation {
 
   Future<TranslationModel> _translateText(
       {required List<String> text, required String to}) async {
-    String toLanguage = window.locale.languageCode;
-
     Map<String, dynamic> requestPayload = {
       'contents': text,
-      'targetLanguageCode': toLanguage,
+      'targetLanguageCode': to,
     };
 
     final response = await http.post(
