@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:google_cloud_translation/src/models/translation_model.dart';
@@ -16,8 +17,8 @@ class Translation {
   /// We can inject the client required, useful for testing
   Client http = Client();
 
-  static const String _baseUrl = 'https://translation.googleapis.com/language/translate/v2';
-  static const String _detectPath = '/detect';
+  static const String _baseUrl =
+      'https://translation.googleapis.com/v3/projects';
 
   /// Returns the value of the token in google.
   String get apiKey => _apiKey;
@@ -40,14 +41,9 @@ class Translation {
   /// Sends a request to translate.
   /// [text] text to translate.
   /// [to] to what language translate.
-  Future<TranslationModel> translate({required String text, required String to}) async {
+  Future<TranslationModel> translate(
+      {required List<String> text, required String to}) async {
     return _translateText(text: text, to: to);
-  }
-
-  /// Detects source lang.
-  /// [text] text to detect.
-  Future<TranslationModel> detectLang({required String text}) async {
-    return _detectLang(text: text);
   }
 
   /// Proxies the error to the callback function provided or to standard `debugPrint`.
@@ -60,45 +56,38 @@ class Translation {
     }
   }
 
-  /// Sends the text to translate to the API endpoint.
   Future<TranslationModel> _translateText(
-      {required String text, required String to}) async {
+      {required List<String> text, required String to}) async {
+    String toLanguage = window.locale.languageCode;
+
+    Map<String, dynamic> requestPayload = {
+      'contents': text,
+      'targetLanguageCode': toLanguage,
+    };
+
     final response = await http.post(
-      Uri.parse('$_baseUrl?target=$to&key=$_apiKey&q=$text'),
+      Uri.parse(
+          '$_baseUrl/your_project/locations/global:translateText?key=$_apiKey'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(requestPayload),
     );
 
     if (response.statusCode == 200) {
       try {
         final body = json.decode(response.body);
-        final translations = body['data']['translations'] as List;
-        final translation = translations.first;
-        return TranslationModel(
-          translatedText: HtmlUnescape().convert(translation['translatedText']),
-          detectedSourceLanguage: translation['detectedSourceLanguage'],
-        );
-      } on Exception catch (e) {
-        _onErrorHandler('error parsing answer', e.toString());
-        throw Exception();
-      }
-    } else {
-      _onErrorHandler('${response.statusCode}', response.body);
-      throw Exception();
-    }
-  }
+        final translations = body['translations'] as List;
 
-  /// Sends the text to detect language to the API endpoint.
-  Future<TranslationModel> _detectLang({required String text}) async {
-    final response = await http.post(
-      Uri.parse('$_baseUrl$_detectPath?&key=$_apiKey&q=$text'),
-    );
+        List<String> translatedTexts = [];
+        List<String> detectedSourceLanguages = [];
 
-    if (response.statusCode == 200) {
-      try {
-        final body = json.decode(response.body);
-        final detection = body['data']['detections'] as List;
+        for (var item in translations) {
+          translatedTexts.add(HtmlUnescape().convert(item['translatedText']));
+          detectedSourceLanguages.add(item['detectedSourceLanguage']);
+        }
+
         return TranslationModel(
-          translatedText: '',
-          detectedSourceLanguage: detection.first.first['language'],
+          translatedTexts: translatedTexts,
+          detectedSourceLanguages: detectedSourceLanguages,
         );
       } on Exception catch (e) {
         _onErrorHandler('error parsing answer', e.toString());

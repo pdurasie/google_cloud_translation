@@ -1,7 +1,7 @@
 class TranslationModel {
-  final String translatedText;
-  final String detectedSourceLanguage;
+  final List<String> translatedTexts;
+  final List<String> detectedSourceLanguages;
 
   TranslationModel(
-      {required this.translatedText, required this.detectedSourceLanguage});
+      {required this.translatedTexts, required this.detectedSourceLanguages});
 }
