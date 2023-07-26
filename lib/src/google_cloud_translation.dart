@@ -17,7 +17,7 @@ class Translation {
   Client http = Client();
 
   static const String _baseUrl =
-      'https://translation.googleapis.com/v3/projects';
+      'https://translation.googleapis.com/language/translate/v2';
 
   /// Returns the value of the token in google.
   String get apiKey => _apiKey;
@@ -58,13 +58,12 @@ class Translation {
   Future<TranslationModel> _translateText(
       {required List<String> text, required String to}) async {
     Map<String, dynamic> requestPayload = {
-      'contents': text,
-      'targetLanguageCode': to,
+      'q': text,
+      'target': to,
     };
 
     final response = await http.post(
-      Uri.parse(
-          '$_baseUrl/your_project/locations/global:translateText?key=$_apiKey'),
+      Uri.parse('$_baseUrl?key=$_apiKey'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(requestPayload),
     );
@@ -72,7 +71,7 @@ class Translation {
     if (response.statusCode == 200) {
       try {
         final body = json.decode(response.body);
-        final translations = body['translations'] as List;
+        final translations = body['data']['translations'] as List;
 
         List<String> translatedTexts = [];
         List<String> detectedSourceLanguages = [];
